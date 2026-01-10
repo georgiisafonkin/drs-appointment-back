@@ -1,5 +1,6 @@
+from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Boolean
+from sqlalchemy import ForeignKey, String, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from app.infrastructure.db.session import Base

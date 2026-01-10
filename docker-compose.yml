@@ -1,0 +1,91 @@
+version: "3.9"
+
+services:
+
+  # ---------- Zookeeper ----------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  # ---------- Kafka ----------
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  # ---------- PostgreSQL (Auth DB) ----------
+  auth-postgres:
+    image: postgres:16
+    container_name: auth-postgres
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_pg_data:/var/lib/postgresql/data
+
+  # ---------- Auth Service ----------
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: auth-service
+    depends_on:
+      - kafka
+      - auth-postgres
+    environment:
+      DATABASE_URL: postgresql+asyncpg://auth_user:auth_password@auth-postgres:5432/auth_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      JWT_SECRET: super-secret-key
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+    ports:
+      - "8000:8000"
+
+  # ---------- Mailhog ----------
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+
+  # ---------- Notification Service ----------
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: notification-service
+    depends_on:
+      - kafka
+      - mailhog
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      FROM_EMAIL: noreply@clinic.com
+      FRONTEND_BASE_URL: http://localhost:3000
+    ports:
+      - "8001:8000"
+
+# ---------- Volumes ----------
+volumes:
+  auth_pg_data:
