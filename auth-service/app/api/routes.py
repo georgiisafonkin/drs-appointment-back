@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.db.session import async_session
 from app.infrastructure.db.repository import EmailVerificationRepository, UserRepository
 from app.domain.services import AuthService
-from app.schemas.auth import RegisterRequest, LoginRequest, VerifyEmailResponse
+from app.schemas.auth import MessageResponse, RegisterRequest, LoginRequest, VerifyEmailResponse
 from app.schemas.token import TokenResponse
 
 router = APIRouter(prefix="/auth")
@@ -12,12 +12,12 @@ async def get_session():
     async with async_session() as session:
         yield session
 
-@router.post("/register", response_model=TokenResponse)
+@router.post("/register", response_model=MessageResponse)
 async def register(data: RegisterRequest, session: AsyncSession = Depends(get_session)):
     service = AuthService(UserRepository(session))
     try:
-        token = await service.register(data.email, data.password)
-        return {"access_token": token}
+        await service.register(data.email, data.password)
+        return {"message": "Registration successful. Please verify your email."}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

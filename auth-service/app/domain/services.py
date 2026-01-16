@@ -39,7 +39,7 @@ class AuthService:
         )
 
     async def login(self, email: str, password: str) -> str:
-        user = await self.repo.get_by_email(email)
+        user = await self.user_repo.get_by_email(email)
 
         if not user or not verify_password(password, user.hashed_password):
             raise ValueError("Invalid credentials")
@@ -55,7 +55,9 @@ class AuthService:
             raise ValueError("Invalid or expired token")
 
         user = await self.user_repo.get_by_id(record.user_id)
-        user.is_verified = True
+        if not user:
+            raise ValueError("User not found")
 
-        await self.user_repo.commit()
+
+        updated_user = await self.user_repo.update(user.id, is_verified=True)
         await self.verification_repo.delete(record)

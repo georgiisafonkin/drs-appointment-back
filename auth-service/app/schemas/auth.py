@@ -10,3 +10,6 @@ class LoginRequest(BaseModel):
 
 class VerifyEmailResponse(BaseModel):
     message: str
+
+class MessageResponse(BaseModel):
+    message: str

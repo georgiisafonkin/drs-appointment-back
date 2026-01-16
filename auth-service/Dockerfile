@@ -19,8 +19,8 @@
     
     COPY pyproject.toml poetry.lock* ./
     RUN poetry config virtualenvs.create false \
-        && poetry install --no-interaction --no-ansi --only main
-    
+    && poetry install --no-interaction --no-ansi --only main --no-root
+
     # -------- App code --------
     COPY app ./app
     COPY alembic ./alembic
@@ -29,5 +29,6 @@
     EXPOSE 8000
     
     # -------- Run --------
-    CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
     
