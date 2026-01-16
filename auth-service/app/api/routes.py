@@ -14,7 +14,10 @@ async def get_session():
 
 @router.post("/register", response_model=MessageResponse)
 async def register(data: RegisterRequest, session: AsyncSession = Depends(get_session)):
-    service = AuthService(UserRepository(session))
+    service = AuthService(
+        UserRepository(session),
+        EmailVerificationRepository(session)
+    )
     try:
         await service.register(data.email, data.password)
         return {"message": "Registration successful. Please verify your email."}
